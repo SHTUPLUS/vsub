@@ -11,7 +11,8 @@ import time
 def parse_args():
     #execute the shell directly
 
-    parser = argparse.ArgumentParser(description="vsub--a tool from group venus that helps you execute command without knowing the meaningless pbs usage")
+    parser = argparse.ArgumentParser(description="vsub--a tool from group venus that helps you execute command without knowing the boring pbs usage")
+
 
     # parser.
     parser.add_argument('--shell', '-S', help='the shell to execute', type=str, required=True, dest='shell')
@@ -81,11 +82,16 @@ def execute_pb_file(tmpshell_name, prog_name, stdout_flag):
     """
     cmd = ['qsub', tmpshell_name]
     subprocess.run(cmd, stdout=subprocess.PIPE)
-    subprocess.call(['rm', tmpshell_name])
-
+    time.sleep(1)
     if stdout_flag:
         # import ipdb;ipdb.set_trace()
-        subprocess.call(['less', '-f', prog_name+'.out'])
+        try:
+            subprocess.call(['less', '-f', prog_name+'.out'])
+        except KeyboardInterrupt:
+            subprocess.call(['rm', tmpshell_name])
+            return
+    subprocess.call(['rm', tmpshell_name])
+
 
 if __name__ == '__main__':
     args = parse_args()
