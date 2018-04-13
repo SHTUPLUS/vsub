@@ -30,7 +30,6 @@ def parse_args():
 
     args = parser.parse_args()
 
-    # import ipdb;ipdb.set_trace()
     # Convert the input format
 
     # args.shell
@@ -44,8 +43,6 @@ def parse_args():
     args.dest = os.path.expanduser(args.dest)
     # TODO: Check the correctness of arguments
     assert args.cmd_flag or os.path.exists(args.shell), "the shell doesn't exist"
-    # import ipdb;
-    # ipdb.set_trace()
     return args
 
 def write_pbs_config_into_shell(file, args):
@@ -66,8 +63,8 @@ def write_pbs_config_into_shell(file, args):
 
     os.chdir(args.dest)
     dest_dir = os.getcwd()
-    out_file = os.path.join(dest_dir, "{}.out".format(args.name))
-    err_file = os.path.join(dest_dir, "{}.err".format(args.name))
+    out_file = os.path.join(dest_dir, "{}.out.node{:02d}".format(args.name, args.node))
+    err_file = os.path.join(dest_dir, "{}.err.node{:02d}".format(args.name, args.node))
 
     file.write("#PBS -o {}\n".format(out_file))
     file.write("#PBS -e {}\n".format(err_file))
@@ -120,11 +117,9 @@ def execute_pb_file(tmpshell_name, prog_name, stdout_flag):
     ------------
     file: file name
     """
-    # import ipdb;ipdb.set_trace()
     cmd = ['qsub', tmpshell_name]
     subprocess.run(cmd, stdout=subprocess.PIPE)
     if stdout_flag:
-        # import ipdb;ipdb.set_trace()
         try:
             file = prog_name + '.out'
             while not os.path.exists(file):

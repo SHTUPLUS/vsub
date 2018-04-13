@@ -63,8 +63,8 @@ def write_pbs_config_into_shell(file, args):
 
     os.chdir(args.dest)
     dest_dir = os.getcwd()
-    out_file = os.path.join(dest_dir, "{}.out".format(args.name))
-    err_file = os.path.join(dest_dir, "{}.err".format(args.name))
+    out_file = os.path.join(dest_dir, "{}.out.node{:02d}".format(args.name, args.node))
+    err_file = os.path.join(dest_dir, "{}.err.node{:02d}".format(args.name, args.node))
 
     file.write("#PBS -o {}\n".format(out_file))
     file.write("#PBS -e {}\n".format(err_file))
