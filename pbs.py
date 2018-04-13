@@ -11,19 +11,22 @@ import time
 def parse_args():
     #execute the shell directly
 
-    parser = argparse.ArgumentParser(description="vsub--a tool from group venus that helps you execute command without knowing the boring pbs usage")
+    parser = argparse.ArgumentParser(description="vsub--a tool from group venus that helps you execute command without knowing the pbs usage")
 
 
     # parser.
     parser.add_argument('--shell', '-S', help='the shell to execute', type=str, required=True, dest='shell')
-    parser.add_argument('--name', metavar='XXX', help='The output file name', type=str, required=True, dest='name')
-    parser.add_argument('--queue', '-Q', metavar='sist-xxx', help='sist-xx. The queue name which could be fould by qstat command', type=str, default='sist-hexm', dest='queue')
+    parser.add_argument('--name', metavar='XXX', help='The output file name returned by pbs system', type=str, dest='name', default="")
     parser.add_argument('--node', '-N', help='the node you want to run program', type=int, required=True, dest='node')#sist-gpu0x
+    parser.add_argument('--queue', '-Q', metavar='sist-xxx',
+                        help='sist-xx. The queue name which could be fould by qstat command', type=str,
+                        default='sist-hexm', dest='queue')
+    parser.add_argument('--stdout', help='Whether to print the output to standard output', type=bool, default=True, dest='stdout_flag')
     # parser.add_argument('--gpu', '-G', help='specify the gpu', type=list, default=[0,1,2,3], dest='gpu')
-    parser.add_argument('--stdout', help='Whether print the output to standard output', type=bool, default=True, dest='stdout_flag')
-
 
     args = parser.parse_args()
+    if args.name is "":
+        args.name = os.path.basename(args.shell).split('.')[0]
     # TODO: Check the correctness of arguments
     assert os.path.exists(args.shell), "the shell doesn't exist"
 
