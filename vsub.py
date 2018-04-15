@@ -6,7 +6,7 @@ import sys
 import os
 import random
 import time
-
+from datetime import datetime
 # Node, queue, gpu, output_file, error_file, name
 def parse_args():
     #execute the shell directly
@@ -16,7 +16,7 @@ def parse_args():
                                                  "For example, the tool will execute shell in the current directory in the target node.")
 
 
-    # parser.
+
     parser.add_argument('--shell', '-S', help='the shell to execute', type=str, required=True, dest='shell')
     parser.add_argument('--name', metavar='XXX', help='The output file name returned by pbs system', type=str, dest='name', default="")
     parser.add_argument('--node', '-N', help='the node you want to run program', type=int, required=True, dest='node')#sist-gpu0x
@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument('--queue', '-Q', metavar='sist-xxx',
                         help='sist-xx. The queue name which could be fould by qstat command(Default:sist-hexm)', type=str,
                         default='sist-hexm', dest='queue')
-    parser.add_argument('--stdout', help='Whether to print the output to standard output', type=bool, default=True, dest='stdout_flag')
+    parser.add_argument('--stdout', help='Whether to print the output to standard output', type=bool, default=False, dest='stdout_flag')
     parser.add_argument('--cmd', action='store_true', help="Is the shell just a command?", dest='cmd_flag')
     # parser.add_argument('--gpu', '-G', help='specify the gpu', type=list, default=[0,1,2,3], dest='gpu')
 
@@ -44,6 +44,7 @@ def parse_args():
     # TODO: Check the correctness of arguments
     assert args.cmd_flag or os.path.exists(args.shell), "the shell doesn't exist"
     return args
+
 
 def write_pbs_config_into_shell(file, args):
     """
@@ -66,22 +67,27 @@ def write_pbs_config_into_shell(file, args):
     out_file = os.path.join(dest_dir, "{}.out.node{:02d}".format(args.name, args.node))
     err_file = os.path.join(dest_dir, "{}.err.node{:02d}".format(args.name, args.node))
 
+    # Overwrite the output file
+    open(out_file, 'w').close()
+    open(err_file, 'w').close()
+
     file.write("#PBS -o {}\n".format(out_file))
     file.write("#PBS -e {}\n".format(err_file))
 
     os.chdir(cur_path)
     file.write("cd {}\n".format(cur_path))
 
+    return out_file
 
 def generate_pb_file(args):
     # open file
-
-    tmp_file_name = 'vsub.tmp' + str(random.randint(0,999))
+    os.makedirs(".vsub/", exist_ok=True)
+    tmp_file_name = '.vsub/vsub.tmp.' + str(datetime.now()).replace(" ","_")#str(random.randint(0,999))
     tmp_file = open(tmp_file_name,'w')
 
     if args.cmd_flag is True:
         tmp_file.write("#!/bin/bash\n")
-        write_pbs_config_into_shell(tmp_file, args)
+        out_file = write_pbs_config_into_shell(tmp_file, args)
         tmp_file.write(args.shell + '\n')
     else:
         shell = open(args.shell, 'r')
@@ -97,7 +103,7 @@ def generate_pb_file(args):
                 if not any([patt in line for patt in FIRST_LINE_PATTERNS]):
                     raise Warning("There maybe something wrong in the first line.")
                 tmp_file.write(line+'\n')
-                write_pbs_config_into_shell(tmp_file, args)
+                out_file = write_pbs_config_into_shell(tmp_file, args)
                 HAVE_NON_BLANK_LINE = True
             elif 'PBS' in line and '#' in line:
                 continue
@@ -108,33 +114,39 @@ def generate_pb_file(args):
 
     tmp_file.close()
 
-    return tmp_file_name
+    return tmp_file_name, out_file
 
 
-def execute_pb_file(tmpshell_name, prog_name, stdout_flag):
+def execute_pb_file(tmpshell_name, out_file, stdout_flag):
     """
     :parameter
     ------------
     file: file name
     """
     cmd = ['qsub', tmpshell_name]
-    subprocess.run(cmd, stdout=subprocess.PIPE)
+    output = subprocess.run(cmd, stdout=subprocess.PIPE)
+
+    task_no = output.stdout.decode('utf-8').strip().split('.')[0]
+    print("task_no: ", task_no)
+    print("out_file: ", out_file)
+    print("less -f {}".format(out_file))
+    #TODO: Spawn a new process to watch the task_no status, and stop the less command when process exit
     if stdout_flag:
         try:
-            file = prog_name + '.out'
-            while not os.path.exists(file):
-                time.sleep(0.2)
-            subprocess.call(['less', '-f', file])
+            while not os.path.exists(out_file):
+                time.sleep(0.5)
+            subprocess.call(['less', '-f', out_file])
         except KeyboardInterrupt:
-            subprocess.call(['rm', tmpshell_name])
+            # subprocess.call(['rm', tmpshell_name])
             return
-    subprocess.call(['rm', tmpshell_name])
+    # TODO: Now, we can't remove the shell for the correctness.
+    # subprocess.call(['rm', tmpshell_name])
 
 
 if __name__ == '__main__':
     args = parse_args()
-    pb_file_name = generate_pb_file(args)
-    execute_pb_file(pb_file_name, args.name, args.stdout_flag)
+    pb_file_name, out_file = generate_pb_file(args)
+    execute_pb_file(pb_file_name, out_file, args.stdout_flag)
 
 
 
