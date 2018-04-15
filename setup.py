@@ -114,5 +114,5 @@ setup(
     cmdclass={
         'upload': UploadCommand,
     },
-    scripts=['vsub.py']
+    scripts=['vsub']
 )
