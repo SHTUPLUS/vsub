@@ -59,7 +59,7 @@ def write_pbs_config_into_shell(file, args):
 
     node_name = "sist-gpu{:02d}".format(args.node)
     file.write("#PBS -l nodes={}\n".format(node_name))
-
+    file.write("#PBS -j oe\n")
     cur_path = os.getcwd() #save a bak for recovery
 
     os.chdir(args.dest)
@@ -69,10 +69,10 @@ def write_pbs_config_into_shell(file, args):
 
     # Overwrite the output file
     open(out_file, 'w').close()
-    open(err_file, 'w').close()
+    #open(err_file, 'w').close()
 
     file.write("#PBS -o {}\n".format(out_file))
-    file.write("#PBS -e {}\n".format(err_file))
+    #file.write("#PBS -e {}\n".format(err_file))
 
     os.chdir(cur_path)
     file.write("cd {}\n".format(cur_path))

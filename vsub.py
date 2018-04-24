@@ -126,8 +126,8 @@ def execute_pb_file(tmpshell_name, out_file, stdout_flag):
     cmd = ['qsub', tmpshell_name]
     output = subprocess.run(cmd, stdout=subprocess.PIPE)
 
-    task_no = output.stdout.decode('utf-8').strip().split('.')[0]
-    print("task_no: ", task_no)
+    task_id = output.stdout.decode('utf-8').strip().split('.')[0]
+    print("task_id: ", task_id)
     print("out_file: ", out_file)
     print("less -f {}".format(out_file))
     #TODO: Spawn a new process to watch the task_no status, and stop the less command when process exit
