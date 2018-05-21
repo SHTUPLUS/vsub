@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+#-------------------
+#Author: Shipeng Yan
+#-------------------
 
 import subprocess
 import argparse
@@ -13,36 +16,39 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description="vsub--a tool from venus group that helps you execute command without knowing the pbs usage."
                                                  "The behavior is the totally same as executing shell in your local machine."
-                                                 "For example, the tool will execute shell in the current directory in the target node.")
+                                                 "For example, the tool will execute shell in the current directory in the target node."
+                                                 "CAUTION:The default ppn i.e. the allocated number of cpu cores is 1.")
 
 
-
-    parser.add_argument('--shell', '-S', help='the shell to execute', type=str, required=True, dest='shell')
-    parser.add_argument('--name', metavar='XXX', help='The output file name returned by pbs system', type=str, dest='name', default="")
+#'-S'
+    #parser.add_argument('shell',  help='the shell to execute', nargs='?', type=str, required=True, dest='shell')
+    parser.add_argument('program',  help='the program to execute', nargs='?', type=str )
+    parser.add_argument('--name','-O',  metavar='XXX', help='The output file name returned by pbs system', type=str, dest='name', default="")
     parser.add_argument('--node', '-N', help='the node you want to run program', type=int, required=True, dest='node')#sist-gpu0x
-    parser.add_argument('--dest', '-D', help="the directory of the output file. Only Support absolute path.", type=str, default="./", dest='dest')
+    parser.add_argument('--dest', '-D', help="the directory of the output file.", type=str, default="./", dest='dest')
     parser.add_argument('--queue', '-Q', metavar='sist-xxx',
                         help='sist-xx. The queue name which could be fould by qstat command(Default:sist-hexm)', type=str,
                         default='sist-hexm', dest='queue')
     parser.add_argument('--stdout', help='Whether to print the output to standard output', type=bool, default=False, dest='stdout_flag')
-    parser.add_argument('--cmd', action='store_true', help="Is the shell just a command?", dest='cmd_flag')
-    # parser.add_argument('--gpu', '-G', help='specify the gpu', type=list, default=[0,1,2,3], dest='gpu')
+    parser.add_argument('--shell', action='store_true', help="Is the program just a shell?", dest='shell_flag')
+    parser.add_argument('--n_cpu_core', help="The number of cpu cores to be allocated", type=int, default=1, dest='n_cpu_core')
+# parser.add_argument('--gpu', '-G', help='specify the gpu', type=list, default=[0,1,2,3], dest='gpu')
 
     args = parser.parse_args()
 
     # Convert the input format
 
-    # args.shell
-    args.shell = os.path.expanduser(args.shell)
+    # args.program
+    args.program = os.path.expanduser(args.program)
 
     # args.name
     if args.name is "":
-        args.name = os.path.basename(args.shell).split('.')[0]
+        args.name = os.path.basename(args.program).split('.')[0]
 
     # args.dest
     args.dest = os.path.expanduser(args.dest)
     # TODO: Check the correctness of arguments
-    assert args.cmd_flag or os.path.exists(args.shell), "the shell doesn't exist"
+    assert not args.shell_flag or os.path.exists(args.program), "the shell doesn't exist"
     return args
 
 
@@ -58,7 +64,7 @@ def write_pbs_config_into_shell(file, args):
     file.write("#PBS -q {}\n".format(args.queue))
 
     node_name = "sist-gpu{:02d}".format(args.node)
-    file.write("#PBS -l nodes={}\n".format(node_name))
+    file.write("#PBS -l nodes={}:ppn={}\n".format(node_name, args.n_cpu_core))
     file.write("#PBS -j oe\n")
     cur_path = os.getcwd() #save a bak for recovery
 
@@ -85,12 +91,12 @@ def generate_pb_file(args):
     tmp_file_name = '.vsub/vsub.tmp.' + str(datetime.now()).replace(" ","_")#str(random.randint(0,999))
     tmp_file = open(tmp_file_name,'w')
 
-    if args.cmd_flag is True:
+    if args.shell_flag is False:
         tmp_file.write("#!/bin/bash\n")
         out_file = write_pbs_config_into_shell(tmp_file, args)
-        tmp_file.write(args.shell + '\n')
+        tmp_file.write(args.program + '\n')
     else:
-        shell = open(args.shell, 'r')
+        shell = open(args.program, 'r')
         HAVE_NON_BLANK_LINE = False
         FIRST_LINE_PATTERNS = ['/usr/bin/env', 'python', 'bash']
         for i, line in enumerate(shell):
