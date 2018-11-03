@@ -10,14 +10,14 @@ Installtion is easy. Just run the following command
 >>>>>>>
 Example
 >>>>>>>
+* typical
 
-*   typical
 ::
+    vsub "python xxx" --node 2
 
-    vsub -S example.sh --name test --node 2
+*   If you want to run a shell(It is ok if no name)
 
-*   The default name is the shell name.
 ::
+    vsub example.sh --name test --node 2 --shell
 
-    vsub -S example.sh --node 2
 
